@@ -2,11 +2,9 @@ package com.example.kirillstoianov.avatarsrotationview
 
 import android.animation.ValueAnimator
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
-import android.support.v4.content.ContextCompat
+import android.graphics.*
+import android.support.annotation.FloatRange
+import android.util.Log
 import android.view.View
 import android.view.animation.LinearInterpolator
 
@@ -23,19 +21,44 @@ class AvatarsRotationView(context: Context) : View(context) {
     private val outerCirclePath = Path()
     private val innerCirclePath = Path()
 
+    private val bitmapPaint by lazy {
+        Paint(Paint.FILTER_BITMAP_FLAG)
+    }
+
+    val ownerUserAvatar by lazy {
+        val bm = BitmapFactory.decodeResource(resources, R.drawable.oval_5)
+        val img = Bitmap.createScaledBitmap(
+            bm,
+            calculateOwnUserAvatarRadius().toInt()*2,
+            calculateOwnUserAvatarRadius().toInt()*2,
+            true
+        )
+        bm.recycle()
+        return@lazy img
+    }
+
     val otherUserAvatar by lazy {
-        ContextCompat.getDrawable(context, R.drawable.oval_5)
+        val bm = BitmapFactory.decodeResource(resources, R.drawable.oval_5)
+        val img = Bitmap.createScaledBitmap(
+            bm,
+            calculateOtherUsersAvatarRadius().toInt(),
+            calculateOtherUsersAvatarRadius().toInt(),
+            true
+        )
+        bm.recycle()
+        return@lazy img
     }
 
     val valueAnimator by lazy {
-        ValueAnimator.ofFloat(0f, 1f).apply {
+        ValueAnimator.ofFloat(0f, 360f).apply {
             repeatMode = ValueAnimator.RESTART
             repeatCount = ValueAnimator.INFINITE
             interpolator = LinearInterpolator()
-            duration = 4000
+            duration = 20000
+//            this.setEvaluator(FloatEvaluator())
             addUpdateListener {
                 val angle = it.animatedValue as Float
-                animatedAngle = 360 * angle
+                animatedAngle =angle
                 invalidate()
             }
         }
@@ -58,7 +81,6 @@ class AvatarsRotationView(context: Context) : View(context) {
         canvas?.apply { drawCircles(this) }
         canvas?.apply { drawOwnerUserAvatar(this) }
         canvas?.apply { drawOtherUsersAvatars(this) }
-        canvas?.apply { drawOtherUsersAvatars(this) }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -73,30 +95,28 @@ class AvatarsRotationView(context: Context) : View(context) {
     }
 
     private fun drawOwnerUserAvatar(canvas: Canvas) {
-        val drawable = ContextCompat.getDrawable(context, R.drawable.oval_5)
 
-        val drawableLeft: Int = width / 2 - calculateOwnUserAvatarRadius().toInt()
-        val drawableRight: Int = width / 2 + calculateOwnUserAvatarRadius().toInt()
-        val drawableTop: Int = height / 2 - calculateOwnUserAvatarRadius().toInt()
-        val drawableBottom: Int = height / 2 + calculateOwnUserAvatarRadius().toInt()
+        val drawableLeft = width / 2 - calculateOwnUserAvatarRadius()
+        val drawableTop = height / 2 - calculateOwnUserAvatarRadius()
+//        val drawableRight: Int = width / 2 + calculateOwnUserAvatarRadius().toInt()
+//        val drawableBottom: Int = height / 2 + calculateOwnUserAvatarRadius().toInt()
 
-        drawable?.setBounds(drawableLeft, drawableTop, drawableRight, drawableBottom)
-        drawable?.draw(canvas)
+        canvas.drawBitmap(ownerUserAvatar,drawableLeft,drawableTop,bitmapPaint)
     }
 
     private fun drawOtherUsersAvatars(canvas: Canvas) {
 
         val x =
-            width / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.cos(animatedAngle * Math.PI / 180).toFloat()
+            width / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(animatedAngle.toDouble())).toFloat()
         val y =
-            height / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.sin(animatedAngle * Math.PI / 180).toFloat()
-        val drawableLeft: Int = (x - calculateOtherUsersAvatarRadius() / 2).toInt()
-        val drawableRight: Int = (x + calculateOtherUsersAvatarRadius() / 2).toInt()
-        val drawableTop: Int = (y - calculateOtherUsersAvatarRadius() / 2).toInt()
-        val drawableBottom: Int = (y + calculateOtherUsersAvatarRadius() / 2).toInt()
+            height / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(animatedAngle.toDouble())).toFloat()
+        val drawableLeft = (x - calculateOtherUsersAvatarRadius() / 2)
+        val drawableTop = (y - calculateOtherUsersAvatarRadius() / 2)
 
-        otherUserAvatar?.setBounds(drawableLeft, drawableTop, drawableRight, drawableBottom)
-        otherUserAvatar?.draw(canvas)
+        Log.wtf("TEST","X: $x Y: $y") //todo remove this line
+
+
+        canvas.drawBitmap(otherUserAvatar, drawableLeft, drawableTop, bitmapPaint)
     }
 
     private fun culculateOuterCircleRadius(): Float = Math.min(width, height) / 2f - circleStrokeWith
@@ -110,7 +130,27 @@ class AvatarsRotationView(context: Context) : View(context) {
     private fun calculateOtherUsersAvatarRadius(): Float = width / 6f
 
     fun startAnimate() {
+
         valueAnimator.start()
+
+//        val handler = Handler()
+//        val runnable = object : Runnable {
+//            private var i = 0
+//
+//            override fun run() {
+//                i++
+//                if (i == 360) {
+//                    i = 0
+//                    handler.removeCallbacks(this)
+//                }
+//                animatedAngle = i
+//                invalidate()
+//
+//                handler.post(this)
+//            }
+//        }
+//
+//        handler.post(runnable)
     }
 
 }
