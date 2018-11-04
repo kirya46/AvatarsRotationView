@@ -126,6 +126,7 @@ class AvatarsRotationView(context: Context) : View(context) {
             duration = 40_000
             addUpdateListener {
                 animatedAngle = it.animatedValue as Float * 360
+                invalidate()
             }
         }
     }
@@ -158,7 +159,6 @@ class AvatarsRotationView(context: Context) : View(context) {
             }
         }
     }
-
 
     init {
         setLayerType(View.LAYER_TYPE_NONE, null)
