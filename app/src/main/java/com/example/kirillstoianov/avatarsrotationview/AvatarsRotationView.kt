@@ -3,8 +3,11 @@ package com.example.kirillstoianov.avatarsrotationview
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
+import android.util.LruCache
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.LinearInterpolator
+import java.util.*
 
 
 /**
@@ -16,8 +19,62 @@ class AvatarsRotationView(context: Context) : View(context) {
         val TAG: String = AvatarsRotationView::class.java.simpleName
     }
 
-    var animatedAngle: Float = 0f
 
+    class AvatarItem {
+
+         class Builder(context: Context) {
+
+            private val avatarItem: AvatarItem = AvatarItem()
+
+            fun setState(state: State): AvatarItem {
+                avatarItem.state = state
+                return avatarItem
+            }
+
+            fun setSize(size: Size): AvatarItem {
+                avatarItem.size = size
+                return avatarItem
+            }
+
+            fun setPosition(position: Position): AvatarItem {
+                avatarItem.position = position
+                return avatarItem
+            }
+
+            fun setOffsetAngle(offsetAngle: Float): AvatarItem {
+                avatarItem.offsetAngle = offsetAngle
+                return avatarItem
+            }
+
+            fun setDrawableResId(drawableResId: Int): AvatarItem {
+                avatarItem.drawableResId = drawableResId
+                return avatarItem
+            }
+
+            fun build(): AvatarItem = avatarItem
+        }
+
+        var state: State = State.SHOW
+        var size: Size = Size.LARGE
+        var position: Position = Position.FIRST_CIRCLE
+        var offsetAngle: Float = Random().nextInt(360).toFloat()
+        var drawableResId: Int = 0
+
+        enum class State { SHOW, HIDE }
+        enum class Size { LARGE, SMALL }
+        enum class Position { FIRST_CIRCLE, SECOND_CIRCLE }
+    }
+
+    var lruCache: LruCache<AvatarItem, Bitmap?> = LruCache(8)
+
+    var avatarItems: ArrayList<AvatarItem> = ArrayList()
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+
+    private var animatedAngle: Float = 0f
     private val circleStrokeWith: Int = 4
     private val outerCirclePath = Path()
     private val innerCirclePath = Path()
@@ -61,7 +118,7 @@ class AvatarsRotationView(context: Context) : View(context) {
         return@lazy img
     }
 
-    private val valueAnimator by lazy {
+    private val angleAnimator by lazy {
         ValueAnimator.ofFloat(0f, 1f).apply {
             repeatMode = ValueAnimator.RESTART
             repeatCount = ValueAnimator.INFINITE
@@ -69,10 +126,39 @@ class AvatarsRotationView(context: Context) : View(context) {
             duration = 40_000
             addUpdateListener {
                 animatedAngle = it.animatedValue as Float * 360
-                postInvalidate()
             }
         }
     }
+
+    private var largeSize: Float = calculateOwnUserAvatarRadius()
+    private var smallSize: Float = calculateOtherUsersAvatarRadius()
+
+    private val showAnimator by lazy {
+        ValueAnimator.ofFloat(0f, culculateOuterCircleRadius()).apply {
+            interpolator = AccelerateDecelerateInterpolator()
+            duration = 350
+            addUpdateListener {
+                largeSize = it.animatedValue as Float
+                if ((it.animatedValue as Float) < calculateInnerCircleRadius()) {
+                    smallSize = it.animatedValue as Float
+                }
+            }
+        }
+    }
+
+    private val hideAnimator by lazy {
+        ValueAnimator.ofFloat(culculateOuterCircleRadius(), 0f).apply {
+            interpolator = AccelerateDecelerateInterpolator()
+            duration = 350
+            addUpdateListener {
+                largeSize = it.animatedValue as Float
+                if ((it.animatedValue as Float) < calculateInnerCircleRadius()) {
+                    smallSize = it.animatedValue as Float
+                }
+            }
+        }
+    }
+
 
     init {
         setLayerType(View.LAYER_TYPE_NONE, null)
@@ -83,19 +169,33 @@ class AvatarsRotationView(context: Context) : View(context) {
 
         canvas?.apply { drawCircles(this) }
         canvas?.apply { drawOwnerUserAvatar(this) }
-
         canvas?.apply { drawOtherUsersAvatars(this) }
-        canvas?.apply { drawTest(this) }
-        canvas?.apply { drawTest2(this) }
-        canvas?.apply { drawTest3(this) }
-        canvas?.apply { drawTest4(this) }
-        canvas?.apply { drawTest5(this) }
-        canvas?.apply { drawTest6(this) }
-        canvas?.apply { drawTest7(this) }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(Math.min(widthMeasureSpec, heightMeasureSpec), Math.min(widthMeasureSpec, heightMeasureSpec))
+    }
+
+    fun startAnimate() {
+        angleAnimator.start()
+    }
+
+    fun animateShow() {
+        showAnimator.cancel()
+        showAnimator.end()
+        hideAnimator.cancel()
+        hideAnimator.end()
+
+        showAnimator.start()
+    }
+
+    fun animateHide() {
+        showAnimator.cancel()
+        showAnimator.end()
+        hideAnimator.cancel()
+        hideAnimator.end()
+
+        hideAnimator.start()
     }
 
     private fun drawCircles(canvas: Canvas) {
@@ -129,115 +229,12 @@ class AvatarsRotationView(context: Context) : View(context) {
         val drawableBottom = y + calculateOtherUsersAvatarRadius() / 2
 
         canvas.drawBitmap(otherUserAvatar, drawableLeft, drawableTop, bitmapPaint)
-//        canvas.drawOval(drawableLeft, drawableTop,drawableRight,drawableBottom, circlePaint)
 
+        avatarItems.forEach { item ->
+            //todo: draw items
+        }
     }
 
-    private fun drawTest(canvas: Canvas) {
-
-        val x =
-            width / 2 + (culculateOuterCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(270 + animatedAngle.toDouble())).toFloat()
-        val y =
-            height / 2 + (culculateOuterCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(270 + animatedAngle.toDouble())).toFloat()
-        val drawableLeft = (x - calculateOtherUsersAvatarRadius() / 2)
-        val drawableTop = (y - calculateOtherUsersAvatarRadius() / 2)
-        val drawableRight = (x + calculateOtherUsersAvatarRadius() / 2)
-        val drawableBottom = y + calculateOtherUsersAvatarRadius() / 2
-
-        canvas.drawBitmap(otherUserAvatar, drawableLeft, drawableTop, bitmapPaint)
-//        canvas.drawOval(drawableLeft, drawableTop,drawableRight,drawableBottom, circlePaint)
-    }
-
-    private fun drawTest2(canvas: Canvas) {
-
-        val x =
-            width / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(80 + animatedAngle.toDouble())).toFloat()
-        val y =
-            height / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(80 + animatedAngle.toDouble())).toFloat()
-        val drawableLeft = (x - calculateOtherUsersAvatarRadius() / 2)
-        val drawableTop = (y - calculateOtherUsersAvatarRadius() / 2)
-        val drawableRight = (x + calculateOtherUsersAvatarRadius() / 2)
-        val drawableBottom = y + calculateOtherUsersAvatarRadius() / 2
-
-        canvas.drawBitmap(otherUserAvatar, drawableLeft, drawableTop, bitmapPaint)
-//        canvas.drawOval(drawableLeft, drawableTop,drawableRight,drawableBottom, circlePaint)
-    }
-
-
-    private fun drawTest3(canvas: Canvas) {
-
-        val x =
-            width / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(170 + animatedAngle.toDouble())).toFloat()
-        val y =
-            height / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(170 + animatedAngle.toDouble())).toFloat()
-        val drawableLeft = (x - calculateOtherUsersAvatarRadius() / 2)
-        val drawableTop = (y - calculateOtherUsersAvatarRadius() / 2)
-        val drawableRight = (x + calculateOtherUsersAvatarRadius() / 2)
-        val drawableBottom = y + calculateOtherUsersAvatarRadius() / 2
-
-        canvas.drawBitmap(otherUserAvatar, drawableLeft, drawableTop, bitmapPaint)
-//        canvas.drawOval(drawableLeft, drawableTop,drawableRight,drawableBottom, circlePaint)
-    }
-
-    private fun drawTest4(canvas: Canvas) {
-
-        val x =
-            width / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(68 + animatedAngle.toDouble())).toFloat()
-        val y =
-            height / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(68 + animatedAngle.toDouble())).toFloat()
-        val drawableLeft = (x - calculateOtherUsersAvatarRadius() / 2)
-        val drawableTop = (y - calculateOtherUsersAvatarRadius() / 2)
-        val drawableRight = (x + calculateOtherUsersAvatarRadius() / 2)
-        val drawableBottom = y + calculateOtherUsersAvatarRadius() / 2
-
-        canvas.drawBitmap(otherUserAvatar, drawableLeft, drawableTop, bitmapPaint)
-//        canvas.drawOval(drawableLeft, drawableTop,drawableRight,drawableBottom, circlePaint)
-    }
-
-    private fun drawTest5(canvas: Canvas) {
-
-        val x =
-            width / 2 + (culculateOuterCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(125 + animatedAngle.toDouble())).toFloat()
-        val y =
-            height / 2 + (culculateOuterCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(125 + animatedAngle.toDouble())).toFloat()
-        val drawableLeft = (x - calculateOtherUsersAvatarRadius() / 2)
-        val drawableTop = (y - calculateOtherUsersAvatarRadius() / 2)
-        val drawableRight = (x + calculateOtherUsersAvatarRadius() / 2)
-        val drawableBottom = y + calculateOtherUsersAvatarRadius() / 2
-
-        canvas.drawBitmap(otherUserAvatar, drawableLeft, drawableTop, bitmapPaint)
-//        canvas.drawOval(drawableLeft, drawableTop,drawableRight,drawableBottom, circlePaint)
-    }
-
-    private fun drawTest6(canvas: Canvas) {
-
-        val x =
-            width / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(45 + animatedAngle.toDouble())).toFloat()
-        val y =
-            height / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(45 + animatedAngle.toDouble())).toFloat()
-        val drawableLeft = (x - calculateOtherUsersAvatarRadius() / 2)
-        val drawableTop = (y - calculateOtherUsersAvatarRadius() / 2)
-        val drawableRight = (x + calculateOtherUsersAvatarRadius() / 2)
-        val drawableBottom = y + calculateOtherUsersAvatarRadius() / 2
-
-        canvas.drawBitmap(otherUserAvatar, drawableLeft, drawableTop, bitmapPaint)
-//        canvas.drawOval(drawableLeft, drawableTop,drawableRight,drawableBottom, circlePaint)
-    }
-
-    private fun drawTest7(canvas: Canvas) {
-
-        val x =
-            width / 2 + (culculateOuterCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(300 + animatedAngle.toDouble())).toFloat()
-        val y =
-            height / 2 + (culculateOuterCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(300 + animatedAngle.toDouble())).toFloat()
-        val drawableLeft = (x - calculateOtherUsersAvatarRadius() / 2)
-        val drawableTop = (y - calculateOtherUsersAvatarRadius() / 2)
-        val drawableRight = (x + calculateOtherUsersAvatarRadius() / 2)
-        val drawableBottom = y + calculateOtherUsersAvatarRadius() / 2
-
-        canvas.drawBitmap(otherUserAvatar, drawableLeft, drawableTop, bitmapPaint)
-//        canvas.drawOval(drawableLeft, drawableTop,drawableRight,drawableBottom, circlePaint)
-    }
 
     private fun culculateOuterCircleRadius(): Float = Math.min(width, height) / 2f - circleStrokeWith
 
@@ -249,8 +246,33 @@ class AvatarsRotationView(context: Context) : View(context) {
 
     private fun calculateOtherUsersAvatarRadius(): Float = width / 6f
 
-    fun startAnimate() {
-        valueAnimator.start()
-    }
+    private fun getBitmap(avatarItem: AvatarItem): Bitmap {
 
+        //check cache
+        val exist = lruCache.get(avatarItem)
+        if (exist != null) return exist
+
+        val sourceBitmap = BitmapFactory.decodeResource(resources, avatarItem.drawableResId)
+
+        val avatarDiameter = when (avatarItem.size) {
+            AvatarItem.Size.LARGE -> {
+                calculateOtherUsersAvatarRadius().toInt() * 2
+            }
+            AvatarItem.Size.SMALL -> {
+                calculateOtherUsersAvatarRadius().toInt()
+            }
+        }
+
+        val resultBitmap = Bitmap.createScaledBitmap(
+            sourceBitmap,
+            avatarDiameter,
+            avatarDiameter,
+            true
+        )
+        sourceBitmap.recycle()
+
+        lruCache.put(avatarItem, resultBitmap)
+
+        return resultBitmap
+    }
 }

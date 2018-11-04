@@ -15,41 +15,27 @@ class MainActivity : AppCompatActivity() {
         val avatarsRoationView = AvatarsRotationView(this@MainActivity)
         findViewById<ViewGroup>(R.id.container)
             .addView(avatarsRoationView)
+
+
+
+        //start view animation
+        avatarsRoationView.startAnimate()
         Handler().postDelayed({
-            avatarsRoationView.startAnimate()
+            avatarsRoationView.animateShow()
         }, 300)
+    }
 
+    fun getAvatarItems():ArrayList<AvatarsRotationView.AvatarItem>{
+        val arrayList = ArrayList<AvatarsRotationView.AvatarItem>()
 
-//        val kf0 = Keyframe.ofFloat(.0f, 0f)
-//        val kf1 = Keyframe.ofFloat(.25f, 90f)
-//        val kf2 = Keyframe.ofFloat(.5f, 180f)
-//        val kf3 = Keyframe.ofFloat(.75f, 270f)
-//        val kf4 = Keyframe.ofFloat(1f, 360f)
-//        val pvhRotation = PropertyValuesHolder.ofKeyframe("animatedAngle", kf0, kf1, kf2,kf3,kf4)
-//        val objectAnimator = ObjectAnimator.ofPropertyValuesHolder(avatarsRoationView, pvhRotation).apply {
-//            this.repeatMode = ValueAnimator.RESTART
-//            this.repeatCount = ValueAnimator.INFINITE
-//            this.interpolator = LinearInterpolator()
-//            this.start()
-//        }
+        val firstBuild = AvatarsRotationView.AvatarItem.Builder(this@MainActivity)
+        firstBuild.setDrawableResId(R.drawable.img_subsboost_male1)
+        firstBuild.setState(AvatarsRotationView.AvatarItem.State.SHOW)
+        firstBuild.setPosition(AvatarsRotationView.AvatarItem.Position.FIRST_CIRCLE)
+        firstBuild.setSize(AvatarsRotationView.AvatarItem.Size.LARGE)
+        firstBuild.setOffsetAngle(50f)
 
-
-//        val handler = Handler()
-//        val runnable = object : Runnable {
-//            private var i = 0
-//
-//            override fun run() {
-//                i++
-//                if (i > 360) {
-//                    i = 0
-//                }
-//                avatarsRoationView.animatedAngle = i.toFloat()
-//                            Log.wtf("TEST", "Angle: ${i.toFloat()}")
-//
-//                handler.post(this)
-//            }
-//        }
-//
-//        handler.post(runnable)
+        arrayList.add(firstBuild.build())
+        return arrayList
     }
 }
