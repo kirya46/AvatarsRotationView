@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
 
         Handler().postDelayed({
             avatarsRoationView.animateShow()
-        }, 600)
+        }, 2500)
     }
 
     fun getAvatarItems(): ArrayList<AvatarsRotationView.AvatarItem> {

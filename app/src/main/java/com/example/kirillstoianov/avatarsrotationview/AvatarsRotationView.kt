@@ -119,7 +119,7 @@ class AvatarsRotationView(context: Context) : View(context) {
     }
 
     private var largeSize: Float = calculateOwnUserAvatarRadius()
-    private var smallSize: Float = calculateOtherUsersAvatarRadius()
+    private var smallSize: Float = getLargeAvatarRadius()
 
     private val showAnimator by lazy {
         ValueAnimator.ofFloat(0f, calculateOuterCircleRadius()).apply {
@@ -227,19 +227,19 @@ class AvatarsRotationView(context: Context) : View(context) {
 
             val avatarLeft = when (item.size) {
                 AvatarItem.Size.LARGE -> {
-                    (cx - calculateOtherUsersAvatarRadius() /2)
+                    (cx - getLargeAvatarRadius()-largeSize / 2)
                 }
                 AvatarItem.Size.SMALL -> {
-                    (cx - calculateOtherUsersAvatarRadius()/4)
+                    (cx - getSmallAvatarRadius() / 2)
                 }
             }
 
             val avatarTop = when (item.size) {
                 AvatarItem.Size.LARGE -> {
-                    (cy - calculateOtherUsersAvatarRadius() /2)
+                    (cy - getLargeAvatarRadius() / 2)
                 }
                 AvatarItem.Size.SMALL -> {
-                    (cy - calculateOtherUsersAvatarRadius()/4)
+                    (cy - getSmallAvatarRadius() /2)
                 }
             }
 
@@ -251,12 +251,14 @@ class AvatarsRotationView(context: Context) : View(context) {
     private fun calculateOuterCircleRadius(): Float = Math.min(width, height) / 2f - circleStrokeWith
 
     private fun calculateInnerCircleRadius(): Float {
-        return Math.min(width, height) / 2 - circleStrokeWith - calculateOtherUsersAvatarRadius()
+        return Math.min(width, height) / 2 - circleStrokeWith - getLargeAvatarRadius()
     }
 
     private fun calculateOwnUserAvatarRadius(): Float = (width / 3f) / 2
 
-    private fun calculateOtherUsersAvatarRadius(): Float = width / 6f
+    private fun getLargeAvatarRadius(): Float = width / 6f
+
+    private fun getSmallAvatarRadius(): Float = width / 8f
 
     private fun getBitmap(avatarItem: AvatarItem): Bitmap {
 
@@ -268,10 +270,10 @@ class AvatarsRotationView(context: Context) : View(context) {
 
         val avatarDiameter = when (avatarItem.size) {
             AvatarItem.Size.LARGE -> {
-                calculateOtherUsersAvatarRadius().toInt()
+                getLargeAvatarRadius().toInt()
             }
             AvatarItem.Size.SMALL -> {
-                calculateOtherUsersAvatarRadius().toInt()/2
+                getSmallAvatarRadius().toInt()
             }
         }
 
