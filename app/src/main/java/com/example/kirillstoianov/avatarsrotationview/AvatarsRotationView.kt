@@ -51,7 +51,6 @@ class AvatarsRotationView(context: Context) : View(context) {
             invalidate()
         }
 
-
     /**
      * Rotation angle.
      * Used when draw [avatarItems].
@@ -126,7 +125,6 @@ class AvatarsRotationView(context: Context) : View(context) {
             invalidate()
         }
 
-
     /**
      * Rotation angle animator.
      */
@@ -185,61 +183,13 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
+
     init {
         setLayerType(View.LAYER_TYPE_NONE, null)
 
         loadUserPhoto()
     }
 
-    /**
-     * Load user avatar and save to local variable.
-     *
-     * @see ownerUserAvatarUrl
-     * @see ownerUserAvatarBitmap
-     */
-    private fun loadUserPhoto() {
-        ownerUserAvatarUrl?.apply {
-
-            Glide
-                .with(context)
-                .asBitmap()
-                .load(this)
-                .apply(RequestOptions().circleCrop())
-                .addListener(object : RequestListener<Bitmap> {
-                    override fun onLoadFailed(
-                        e: GlideException?,
-                        model: Any?,
-                        target: Target<Bitmap>?,
-                        isFirstResource: Boolean
-                    ): Boolean {
-                        TODO("Set placeholder") //To change body of created functions use File | Settings | File Templates.
-                    }
-
-                    override fun onResourceReady(
-                        resource: Bitmap?,
-                        model: Any?,
-                        target: Target<Bitmap>?,
-                        dataSource: DataSource?,
-                        isFirstResource: Boolean
-                    ): Boolean {
-
-                        if (resource == null) return isFirstResource
-
-                        val img = Bitmap.createScaledBitmap(
-                            resource,
-                            getCenterAvatarRadius().toInt() * 2,
-                            getCenterAvatarRadius().toInt() * 2,
-                            true
-                        )
-                        resource.recycle()
-                        ownerUserAvatarBitmap = img
-
-                        return isFirstResource
-                    }
-                })
-                .submit()
-        }
-    }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
@@ -476,6 +426,56 @@ class AvatarsRotationView(context: Context) : View(context) {
         lruCache.put(avatarItem, resultBitmap)
 
         return resultBitmap
+    }
+
+    /**
+     * Load user avatar and save to local variable.
+     *
+     * @see ownerUserAvatarUrl
+     * @see ownerUserAvatarBitmap
+     */
+    private fun loadUserPhoto() {
+        ownerUserAvatarUrl?.apply {
+
+            Glide
+                .with(context)
+                .asBitmap()
+                .load(this)
+                .apply(RequestOptions().circleCrop())
+                .addListener(object : RequestListener<Bitmap> {
+                    override fun onLoadFailed(
+                        e: GlideException?,
+                        model: Any?,
+                        target: Target<Bitmap>?,
+                        isFirstResource: Boolean
+                    ): Boolean {
+                        TODO("Set placeholder") //To change body of created functions use File | Settings | File Templates.
+                    }
+
+                    override fun onResourceReady(
+                        resource: Bitmap?,
+                        model: Any?,
+                        target: Target<Bitmap>?,
+                        dataSource: DataSource?,
+                        isFirstResource: Boolean
+                    ): Boolean {
+
+                        if (resource == null) return isFirstResource
+
+                        val img = Bitmap.createScaledBitmap(
+                            resource,
+                            getCenterAvatarRadius().toInt() * 2,
+                            getCenterAvatarRadius().toInt() * 2,
+                            true
+                        )
+                        resource.recycle()
+                        ownerUserAvatarBitmap = img
+
+                        return isFirstResource
+                    }
+                })
+                .submit()
+        }
     }
 
     /**
