@@ -18,10 +18,10 @@ class MainActivity : AppCompatActivity() {
             .addView(avatarsRoationView)
 
         avatarsRoationView.avatarItems = getAvatarItems()
-        avatarsRoationView.ownerUserAvatarUrl = "https://c.phts.io/nr/chakrd5g62lorfrksgkwg44so4wc4ww.r800x800.906eefcfb27482af7b6ceaf4add5fac4.jpg"
+        avatarsRoationView.ownerUserAvatarUrl =
+                "https://c.phts.io/nr/chakrd5g62lorfrksgkwg44so4wc4ww.r800x800.906eefcfb27482af7b6ceaf4add5fac4.jpg"
 
         //start view animation
-
         Handler().postDelayed({
             avatarsRoationView.startAnimate()
         }, 300)
@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
     fun getAvatarItems(): ArrayList<AvatarsRotationView.AvatarItem> {
         val arrayList = ArrayList<AvatarsRotationView.AvatarItem>()
 
-        val male1= AvatarsRotationView.AvatarItem.Builder(this@MainActivity)
+        val male1 = AvatarsRotationView.AvatarItem.Builder()
             .setDrawableResId(R.drawable.img_subsboost_male1)
             .setType(AvatarsRotationView.AvatarItem.Type.DEFAULT)
             .setPosition(AvatarsRotationView.AvatarItem.Position.FIRST_CIRCLE)
@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
             .setOffsetAngle(50f)
             .build()
 
-        val male2 = AvatarsRotationView.AvatarItem.Builder(this@MainActivity)
+        val male2 = AvatarsRotationView.AvatarItem.Builder()
             .setDrawableResId(R.drawable.img_subsboost_male2)
             .setType(AvatarsRotationView.AvatarItem.Type.ANIMATED)
             .setPosition(AvatarsRotationView.AvatarItem.Position.FIRST_CIRCLE)
@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
             .setOffsetAngle(100f)
             .build()
 
-        val male3 = AvatarsRotationView.AvatarItem.Builder(this@MainActivity)
+        val male3 = AvatarsRotationView.AvatarItem.Builder()
             .setDrawableResId(R.drawable.img_subsboost_male3)
             .setType(AvatarsRotationView.AvatarItem.Type.ANIMATED)
             .setPosition(AvatarsRotationView.AvatarItem.Position.FIRST_CIRCLE)
@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity() {
             .setOffsetAngle(150f)
             .build()
 
-        val male4 = AvatarsRotationView.AvatarItem.Builder(this@MainActivity)
+        val male4 = AvatarsRotationView.AvatarItem.Builder()
             .setDrawableResId(R.drawable.img_subsboost_male4)
             .setType(AvatarsRotationView.AvatarItem.Type.ANIMATED)
             .setPosition(AvatarsRotationView.AvatarItem.Position.SECOND_CIRCLE)
@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
             .setOffsetAngle(200f)
             .build()
 
-        val male5 = AvatarsRotationView.AvatarItem.Builder(this@MainActivity)
+        val male5 = AvatarsRotationView.AvatarItem.Builder()
             .setDrawableResId(R.drawable.img_subsboost_male5)
             .setType(AvatarsRotationView.AvatarItem.Type.DEFAULT)
             .setPosition(AvatarsRotationView.AvatarItem.Position.FIRST_CIRCLE)
@@ -78,7 +78,7 @@ class MainActivity : AppCompatActivity() {
             .setOffsetAngle(250f)
             .build()
 
-        val male6 = AvatarsRotationView.AvatarItem.Builder(this@MainActivity)
+        val male6 = AvatarsRotationView.AvatarItem.Builder()
             .setDrawableResId(R.drawable.img_subsboost_male6)
             .setType(AvatarsRotationView.AvatarItem.Type.ANIMATED)
             .setPosition(AvatarsRotationView.AvatarItem.Position.SECOND_CIRCLE)
@@ -86,7 +86,7 @@ class MainActivity : AppCompatActivity() {
             .setOffsetAngle(300f)
             .build()
 
-        val male7 = AvatarsRotationView.AvatarItem.Builder(this@MainActivity)
+        val male7 = AvatarsRotationView.AvatarItem.Builder()
             .setDrawableResId(R.drawable.img_subsboost_male7)
             .setType(AvatarsRotationView.AvatarItem.Type.ANIMATED)
             .setPosition(AvatarsRotationView.AvatarItem.Position.FIRST_CIRCLE)
@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
             .setOffsetAngle(350f)
             .build()
 
-        val male8 = AvatarsRotationView.AvatarItem.Builder(this@MainActivity)
+        val male8 = AvatarsRotationView.AvatarItem.Builder()
             .setDrawableResId(R.drawable.img_subsboost_male8)
             .setType(AvatarsRotationView.AvatarItem.Type.ANIMATED)
             .setPosition(AvatarsRotationView.AvatarItem.Position.SECOND_CIRCLE)

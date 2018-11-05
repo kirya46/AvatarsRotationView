@@ -25,6 +25,26 @@ class AvatarsRotationView(context: Context) : View(context) {
         val TAG: String = AvatarsRotationView::class.java.simpleName
     }
 
+    /**
+     * Avatar url for center image.
+     */
+    var ownerUserAvatarUrl: String? = null
+        set(value) {
+            field = value
+
+            if (field == null) {
+                ownerUserAvatarBitmap?.recycle()
+                ownerUserAvatarBitmap = null
+                invalidate()
+                return
+            }
+
+            loadUserPhoto()
+        }
+
+    /**
+     * Avatar items which must be rotate around center.
+     */
     var avatarItems: ArrayList<AvatarItem> = ArrayList()
         set(value) {
             field = value
@@ -32,24 +52,62 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
 
 
-    private var lruCache: LruCache<AvatarItem, Bitmap?> = LruCache(8)
-
-    //Animated values
+    /**
+     * Rotation angle.
+     * Used when draw [avatarItems].
+     *
+     * NOTE: this value will change with [angleAnimator].
+     */
     private var animatedAngle: Float = 0f
+
+    /**
+     * Size of avatars with [AvatarItem.size] == [AvatarItem.Size.LARGE].
+     * Used when draw [avatarItems].
+     *
+     * NOTE: this value will change with [showAnimator] and [hideLargeAnimator].
+     */
     private var largeSize: Float = 1f
+
+    /**
+     * Size of avatars with [AvatarItem.size] == [AvatarItem.Size.SMALL].
+     * Used when draw [avatarItems].
+     *
+     * NOTE: this value will change with [showAnimator] and [hideSmallAnimator].
+     */
     private var smallSize: Float = 1f
 
-    //circles values
+    /**
+     * Background circles stroke with.
+     */
     private val circleStrokeWith: Int = 4
+
+    /**
+     * Outer background circle [Path].
+     */
     private val outerCirclePath = Path()
+
+    /**
+     * Inner background circle [Path].
+     */
     private val innerCirclePath = Path()
 
+    /**
+     * [LruCache] for bitmaps.
+     */
+    private var lruCache: LruCache<AvatarItem, Bitmap?> = LruCache(8)
+
+    /**
+     * Bitmap paint.
+     */
     private val bitmapPaint by lazy {
         Paint(Paint.FILTER_BITMAP_FLAG).apply {
             isAntiAlias = true
         }
     }
 
+    /**
+     * Background circles paint.
+     */
     private val circlePaint by lazy {
         Paint().apply {
             this.color = Color.parseColor("#eaeaea")
@@ -59,38 +117,19 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
-//    private val ownerUserAvatar by lazy {
-//        val bm = BitmapFactory.decodeResource(resources, R.drawable.oval_5)
-//        val img = Bitmap.createScaledBitmap(
-//            bm,
-//            getCenterAvatarRadius().toInt() * 2,
-//            getCenterAvatarRadius().toInt() * 2,
-//            true
-//        )
-//        bm.recycle()
-//        return@lazy img
-//    }
-
-     var ownerUserAvatarUrl: String? = null
+    /**
+     * User avatar bitmap for draw in center of view.
+     */
+    private var ownerUserAvatarBitmap: Bitmap? = null
         set(value) {
             field = value
-
-            if (value == null) {
-                ownerUserAvatar?.recycle()
-                ownerUserAvatar = null
-                return
-            }
-
-            loadUserPhoto()
+            invalidate()
         }
 
-    private var ownerUserAvatar: Bitmap? = null
-    set(value) {
-        field = value
-        invalidate()
-    }
 
-
+    /**
+     * Rotation angle animator.
+     */
     private val angleAnimator by lazy {
         ValueAnimator.ofFloat(0f, 1f).apply {
             repeatMode = ValueAnimator.RESTART
@@ -104,6 +143,9 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
+    /**
+     * Show animator for all [avatarItems].
+     */
     private val showAnimator by lazy {
         ValueAnimator.ofFloat(1f, getLargeAvatarRadius()).apply {
             interpolator = AccelerateDecelerateInterpolator()
@@ -117,6 +159,9 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
+    /**
+     * Hide animator for [AvatarItem]'s where [AvatarItem.size] == [AvatarItem.Size.LARGE].
+     */
     private val hideLargeAnimator by lazy {
         ValueAnimator.ofFloat(getLargeAvatarRadius(), 1f).apply {
             interpolator = AccelerateDecelerateInterpolator()
@@ -127,6 +172,9 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
+    /**
+     * Hide animator for [AvatarItem]'s where [AvatarItem.size] == [AvatarItem.Size.SMALL].
+     */
     private val hideSmallAnimator by lazy {
         ValueAnimator.ofFloat(getSmallAvatarRadius(), 1f).apply {
             interpolator = AccelerateDecelerateInterpolator()
@@ -143,6 +191,12 @@ class AvatarsRotationView(context: Context) : View(context) {
         loadUserPhoto()
     }
 
+    /**
+     * Load user avatar and save to local variable.
+     *
+     * @see ownerUserAvatarUrl
+     * @see ownerUserAvatarBitmap
+     */
     private fun loadUserPhoto() {
         ownerUserAvatarUrl?.apply {
 
@@ -178,7 +232,7 @@ class AvatarsRotationView(context: Context) : View(context) {
                             true
                         )
                         resource.recycle()
-                        ownerUserAvatar = img
+                        ownerUserAvatarBitmap = img
 
                         return isFirstResource
                     }
@@ -190,19 +244,33 @@ class AvatarsRotationView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
-        canvas?.apply { drawCircles(this) }
-        canvas?.apply { drawOwnerUserAvatar(this) }
-        canvas?.apply { drawOtherUsersAvatars(this) }
+        canvas?.apply { drawBackgroundCirclesCircles(this) }
+        canvas?.apply { drawCenterAvatar(this) }
+        canvas?.apply { drawAvatarItems(this) }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(Math.min(widthMeasureSpec, heightMeasureSpec), Math.min(widthMeasureSpec, heightMeasureSpec))
     }
 
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        avatarItems.forEach {
+            val bitmap = lruCache.get(it)
+            bitmap?.recycle()
+        }
+    }
+
+    /**
+     * Start play rotation animation for all [avatarItems].
+     */
     fun startAnimate() {
         angleAnimator.start()
     }
 
+    /**
+     * Play show animation for [AvatarItem] where [AvatarItem.type] == [AvatarItem.Type.ANIMATED].
+     */
     fun animateShow() {
         hideLargeAnimator.cancel()
         hideLargeAnimator.end()
@@ -214,6 +282,9 @@ class AvatarsRotationView(context: Context) : View(context) {
         showAnimator.start()
     }
 
+    /**
+     * Play hide animation for [AvatarItem] where [AvatarItem.type] == [AvatarItem.Type.ANIMATED].
+     */
     fun animateHide() {
         showAnimator.cancel()
         showAnimator.end()
@@ -226,7 +297,10 @@ class AvatarsRotationView(context: Context) : View(context) {
         hideSmallAnimator.start()
     }
 
-    private fun drawCircles(canvas: Canvas) {
+    /**
+     * Draw two background circles.
+     */
+    private fun drawBackgroundCirclesCircles(canvas: Canvas) {
         outerCirclePath.reset()
         innerCirclePath.reset()
         outerCirclePath.addCircle(width / 2f, height / 2f, getOuterCircleRadius(), Path.Direction.CCW)
@@ -235,17 +309,23 @@ class AvatarsRotationView(context: Context) : View(context) {
         canvas.drawPath(innerCirclePath, circlePaint)
     }
 
-    private fun drawOwnerUserAvatar(canvas: Canvas) {
+    /**
+     * Draw center avatar.
+     */
+    private fun drawCenterAvatar(canvas: Canvas) {
 
         val drawableLeft = width / 2 - getCenterAvatarRadius()
         val drawableTop = height / 2 - getCenterAvatarRadius()
         //val drawableRight: Int = width / 2 + getCenterAvatarRadius().toInt()
         //val drawableBottom: Int = height / 2 + getCenterAvatarRadius().toInt()
 
-        ownerUserAvatar?.apply { canvas.drawBitmap(this, drawableLeft, drawableTop, bitmapPaint) }
+        ownerUserAvatarBitmap?.apply { canvas.drawBitmap(this, drawableLeft, drawableTop, bitmapPaint) }
     }
 
-    private fun drawOtherUsersAvatars(canvas: Canvas) {
+    /**
+     * Draw [avatarItems] around center.
+     */
+    private fun drawAvatarItems(canvas: Canvas) {
 
         avatarItems.forEach { item ->
             val cx = when (item.position) {
@@ -309,7 +389,6 @@ class AvatarsRotationView(context: Context) : View(context) {
 
             var bitmap = getBitmap(item)
 
-
             if (item.type == AvatarItem.Type.ANIMATED) {
                 when (item.size) {
                     AvatarItem.Size.SMALL -> {
@@ -335,19 +414,40 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
+    /**
+     * Get radius for outer background circle.
+     */
     private fun getOuterCircleRadius(): Float =
         (Math.min(width, height) - getLargeAvatarRadius()) / 2f - circleStrokeWith
 
+    /**
+     * Get radius for inner background circle.
+     */
     private fun getInnerCircleRadius(): Float {
         return (Math.min(width, height) - getLargeAvatarRadius()) / 2 - circleStrokeWith - getLargeAvatarRadius()
     }
 
+    /**
+     * Get radius of center user avatar.
+     */
     private fun getCenterAvatarRadius(): Float = ((Math.min(width, height) - getLargeAvatarRadius()) / 3f) / 2
 
-    private fun getLargeAvatarRadius(): Float = width / 7f
+    /**
+     * Get avatar radius for items where [AvatarItem.size] = [AvatarItem.Size.LARGE].
+     */
+    private fun getLargeAvatarRadius(): Float = Math.min(width, height) / 7f
 
-    private fun getSmallAvatarRadius(): Float = width / 9f
+    /**
+     * Get avatar radius for items where [AvatarItem.size] = [AvatarItem.Size.SMALL].
+     */
+    private fun getSmallAvatarRadius(): Float = Math.min(width, height) / 9f
 
+    /**
+     * Get bitmap for destination [avatarItem].
+     *
+     * @param avatarItem - destination item for which [AvatarItem.drawableResId]
+     * need to get bitmap.
+     */
     private fun getBitmap(avatarItem: AvatarItem): Bitmap {
 
         //check cache
@@ -378,10 +478,12 @@ class AvatarsRotationView(context: Context) : View(context) {
         return resultBitmap
     }
 
-
+    /**
+     * Holder for user avatar items configuration.
+     */
     class AvatarItem {
 
-        class Builder(context: Context) {
+        class Builder {
 
             private val avatarItem: AvatarItem = AvatarItem()
 
@@ -416,11 +518,43 @@ class AvatarsRotationView(context: Context) : View(context) {
         var type: Type = Type.DEFAULT
         var size: Size = Size.LARGE
         var position: Position = Position.FIRST_CIRCLE
+
+        /**
+         * Items angle offset for start position.
+         */
         var offsetAngle: Float = Random().nextInt(360).toFloat()
+
+        /**
+         * Drawable resource id for this item.
+         */
         var drawableResId: Int = 0
 
-        enum class Type { DEFAULT, ANIMATED }
+        /**
+         * Type for separate items which always must be shown
+         * from items which can show/hide with animation.
+         */
+        enum class Type {
+            /**
+             * Items with this type will never animated
+             * and always showed.
+             */
+            DEFAULT,
+
+            /**
+             * Items with this type can be hided and must be animated
+             * when [AvatarsRotationView.animateShow]/[AvatarsRotationView.animateHide] called.
+             */
+            ANIMATED
+        }
+
+        /**
+         * Item image size.
+         */
         enum class Size { LARGE, SMALL }
+
+        /**
+         * Item position on inner or outer circle.
+         */
         enum class Position { FIRST_CIRCLE, SECOND_CIRCLE }
     }
 }
