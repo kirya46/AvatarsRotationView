@@ -3,6 +3,7 @@ package com.example.kirillstoianov.avatarsrotationview
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
+import android.util.AttributeSet
 import android.util.LruCache
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -19,7 +20,7 @@ import java.util.*
 /**
  * Created by Kirill Stoianov on 02.11.18.
  */
-class AvatarsRotationView(context: Context) : View(context) {
+class AvatarsRotationView(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : View(context, attrs, defStyleAttr)  {
 
     companion object {
         val TAG: String = AvatarsRotationView::class.java.simpleName
@@ -183,6 +184,9 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
+
+    constructor(context: Context) : this(context, null, 0)
+    constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
 
     init {
         setLayerType(View.LAYER_TYPE_NONE, null)
