@@ -19,54 +19,6 @@ class AvatarsRotationView(context: Context) : View(context) {
         val TAG: String = AvatarsRotationView::class.java.simpleName
     }
 
-
-    class AvatarItem {
-
-        class Builder(context: Context) {
-
-            private val avatarItem: AvatarItem = AvatarItem()
-
-            fun setState(state: State): Builder {
-                avatarItem.state = state
-                return this
-            }
-
-            fun setSize(size: Size): Builder {
-                avatarItem.size = size
-                return this
-            }
-
-            fun setPosition(position: Position): Builder {
-                avatarItem.position = position
-                return this
-            }
-
-            fun setOffsetAngle(offsetAngle: Float): Builder {
-                avatarItem.offsetAngle = offsetAngle
-                return this
-            }
-
-            fun setDrawableResId(drawableResId: Int): Builder {
-                avatarItem.drawableResId = drawableResId
-                return this
-            }
-
-            fun build(): AvatarItem = avatarItem
-        }
-
-        var state: State = State.SHOW
-        var size: Size = Size.LARGE
-        var position: Position = Position.FIRST_CIRCLE
-        var offsetAngle: Float = Random().nextInt(360).toFloat()
-        var drawableResId: Int = 0
-
-        enum class State { SHOW, HIDE }
-        enum class Size { LARGE, SMALL }
-        enum class Position { FIRST_CIRCLE, SECOND_CIRCLE }
-    }
-
-    var lruCache: LruCache<AvatarItem, Bitmap?> = LruCache(8)
-
     var avatarItems: ArrayList<AvatarItem> = ArrayList()
         set(value) {
             field = value
@@ -74,7 +26,14 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
 
 
+    private var lruCache: LruCache<AvatarItem, Bitmap?> = LruCache(8)
+
+    //Animated values
     private var animatedAngle: Float = 0f
+    private var largeSize: Float = 1f
+    private var smallSize: Float = 1f
+
+    //circles values
     private val circleStrokeWith: Int = 4
     private val outerCirclePath = Path()
     private val innerCirclePath = Path()
@@ -98,13 +57,14 @@ class AvatarsRotationView(context: Context) : View(context) {
         val bm = BitmapFactory.decodeResource(resources, R.drawable.oval_5)
         val img = Bitmap.createScaledBitmap(
             bm,
-            calculateOwnUserAvatarRadius().toInt() * 2,
-            calculateOwnUserAvatarRadius().toInt() * 2,
+            getCenterAvatarRadius().toInt() * 2,
+            getCenterAvatarRadius().toInt() * 2,
             true
         )
         bm.recycle()
         return@lazy img
     }
+
     private val angleAnimator by lazy {
         ValueAnimator.ofFloat(0f, 1f).apply {
             repeatMode = ValueAnimator.RESTART
@@ -118,31 +78,35 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
-    private var largeSize: Float = calculateOwnUserAvatarRadius()
-    private var smallSize: Float = getLargeAvatarRadius()
-
     private val showAnimator by lazy {
-        ValueAnimator.ofFloat(0f, calculateOuterCircleRadius()).apply {
+        ValueAnimator.ofFloat(1f, getLargeAvatarRadius()).apply {
             interpolator = AccelerateDecelerateInterpolator()
             duration = 350
             addUpdateListener {
                 largeSize = it.animatedValue as Float
-                if ((it.animatedValue as Float) < calculateInnerCircleRadius()) {
+                if ((it.animatedValue as Float) <= getSmallAvatarRadius()) {
                     smallSize = it.animatedValue as Float
                 }
             }
         }
     }
 
-    private val hideAnimator by lazy {
-        ValueAnimator.ofFloat(calculateOuterCircleRadius(), 0f).apply {
+    private val hideLargeAnimator by lazy {
+        ValueAnimator.ofFloat(getLargeAvatarRadius(), 1f).apply {
             interpolator = AccelerateDecelerateInterpolator()
             duration = 350
             addUpdateListener {
                 largeSize = it.animatedValue as Float
-                if ((it.animatedValue as Float) < calculateInnerCircleRadius()) {
-                    smallSize = it.animatedValue as Float
-                }
+            }
+        }
+    }
+
+    private val hideSmallAnimator by lazy {
+        ValueAnimator.ofFloat(getSmallAvatarRadius(), 1f).apply {
+            interpolator = AccelerateDecelerateInterpolator()
+            duration = 350
+            addUpdateListener {
+                smallSize = it.animatedValue as Float
             }
         }
     }
@@ -168,10 +132,12 @@ class AvatarsRotationView(context: Context) : View(context) {
     }
 
     fun animateShow() {
+        hideLargeAnimator.cancel()
+        hideLargeAnimator.end()
+        hideSmallAnimator.cancel()
+        hideSmallAnimator.end()
         showAnimator.cancel()
         showAnimator.end()
-        hideAnimator.cancel()
-        hideAnimator.end()
 
         showAnimator.start()
     }
@@ -179,29 +145,32 @@ class AvatarsRotationView(context: Context) : View(context) {
     fun animateHide() {
         showAnimator.cancel()
         showAnimator.end()
-        hideAnimator.cancel()
-        hideAnimator.end()
+        hideSmallAnimator.cancel()
+        hideSmallAnimator.end()
+        hideLargeAnimator.cancel()
+        hideLargeAnimator.end()
 
-        hideAnimator.start()
+        hideLargeAnimator.start()
+        hideSmallAnimator.start()
     }
 
     private fun drawCircles(canvas: Canvas) {
         outerCirclePath.reset()
         innerCirclePath.reset()
-        outerCirclePath.addCircle(width / 2f, height / 2f, calculateOuterCircleRadius().toFloat(), Path.Direction.CCW)
-        innerCirclePath.addCircle(width / 2f, height / 2f, calculateInnerCircleRadius().toFloat(), Path.Direction.CCW)
+        outerCirclePath.addCircle(width / 2f, height / 2f, getOuterCircleRadius(), Path.Direction.CCW)
+        innerCirclePath.addCircle(width / 2f, height / 2f, getInnerCircleRadius(), Path.Direction.CCW)
         canvas.drawPath(outerCirclePath, circlePaint)
         canvas.drawPath(innerCirclePath, circlePaint)
     }
 
     private fun drawOwnerUserAvatar(canvas: Canvas) {
 
-        val drawableLeft = width / 2 - calculateOwnUserAvatarRadius()
-        val drawableTop = height / 2 - calculateOwnUserAvatarRadius()
-//        val drawableRight: Int = width / 2 + calculateOwnUserAvatarRadius().toInt()
-//        val drawableBottom: Int = height / 2 + calculateOwnUserAvatarRadius().toInt()
+        val drawableLeft = width / 2 - getCenterAvatarRadius()
+        val drawableTop = height / 2 - getCenterAvatarRadius()
+        //val drawableRight: Int = width / 2 + getCenterAvatarRadius().toInt()
+        //val drawableBottom: Int = height / 2 + getCenterAvatarRadius().toInt()
 
-        canvas.drawBitmap(ownerUserAvatar, drawableLeft.toFloat(), drawableTop.toFloat(), bitmapPaint)
+        canvas.drawBitmap(ownerUserAvatar, drawableLeft, drawableTop, bitmapPaint)
     }
 
     private fun drawOtherUsersAvatars(canvas: Canvas) {
@@ -209,56 +178,102 @@ class AvatarsRotationView(context: Context) : View(context) {
         avatarItems.forEach { item ->
             val cx = when (item.position) {
                 AvatarItem.Position.FIRST_CIRCLE -> {
-                    width / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(item.offsetAngle + animatedAngle.toDouble())).toFloat()
+                    width / 2 + (getInnerCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(item.offsetAngle + animatedAngle.toDouble())).toFloat()
                 }
                 AvatarItem.Position.SECOND_CIRCLE -> {
-                    width / 2 + (calculateOuterCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(item.offsetAngle + animatedAngle.toDouble())).toFloat()
+                    width / 2 + (getOuterCircleRadius() - circleStrokeWith) * Math.cos(Math.toRadians(item.offsetAngle + animatedAngle.toDouble())).toFloat()
                 }
             }
 
             val cy = when (item.position) {
                 AvatarItem.Position.FIRST_CIRCLE -> {
-                    height / 2 + (calculateInnerCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(item.offsetAngle + animatedAngle.toDouble())).toFloat()
+                    height / 2 + (getInnerCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(item.offsetAngle + animatedAngle.toDouble())).toFloat()
                 }
                 AvatarItem.Position.SECOND_CIRCLE -> {
-                    height / 2 + (calculateOuterCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(item.offsetAngle + animatedAngle.toDouble())).toFloat()
+                    height / 2 + (getOuterCircleRadius() - circleStrokeWith) * Math.sin(Math.toRadians(item.offsetAngle + animatedAngle.toDouble())).toFloat()
                 }
             }
 
-            val avatarLeft = when (item.size) {
-                AvatarItem.Size.LARGE -> {
-                    (cx - getLargeAvatarRadius()-largeSize / 2)
+            val avatarLeft:Float = if (item.type == AvatarItem.Type.ANIMATED){
+                when (item.size) {
+                    AvatarItem.Size.LARGE -> {
+                        (cx - largeSize / 2)
+                    }
+                    AvatarItem.Size.SMALL -> {
+                        (cx - smallSize / 2)
+                    }
                 }
-                AvatarItem.Size.SMALL -> {
-                    (cx - getSmallAvatarRadius() / 2)
+            }else{
+               when(item.size){
+                   AvatarItem.Size.LARGE -> {
+                       (cx - getLargeAvatarRadius() / 2)
+                   }
+                   AvatarItem.Size.SMALL -> {
+                       (cx - getSmallAvatarRadius() / 2)
+                   }
+               }
+            }
+
+
+            val avatarTop = if (item.type == AvatarItem.Type.ANIMATED){
+                when (item.size) {
+                    AvatarItem.Size.LARGE -> {
+                        (cy - largeSize / 2)
+                    }
+                    AvatarItem.Size.SMALL -> {
+                        (cy - smallSize / 2)
+                    }
+                }
+            }else{
+                when(item.size){
+                    AvatarItem.Size.LARGE -> {
+                        (cy - getLargeAvatarRadius() / 2)
+                    }
+                    AvatarItem.Size.SMALL -> {
+                        (cy - getSmallAvatarRadius() / 2)
+                    }
                 }
             }
 
-            val avatarTop = when (item.size) {
-                AvatarItem.Size.LARGE -> {
-                    (cy - getLargeAvatarRadius() / 2)
-                }
-                AvatarItem.Size.SMALL -> {
-                    (cy - getSmallAvatarRadius() /2)
+            var bitmap = getBitmap(item)
+
+
+            if (item.type == AvatarItem.Type.ANIMATED) {
+                when (item.size) {
+                    AvatarItem.Size.SMALL -> {
+                        bitmap = Bitmap.createScaledBitmap(
+                            getBitmap(item),
+                            smallSize.toInt(),
+                            smallSize.toInt(),
+                            true
+                        )
+                    }
+                    AvatarItem.Size.LARGE -> {
+                        bitmap = Bitmap.createScaledBitmap(
+                            getBitmap(item),
+                            largeSize.toInt(),
+                            largeSize.toInt(),
+                            true
+                        )
+                    }
                 }
             }
 
-            canvas.drawBitmap(getBitmap(item), avatarLeft, avatarTop, bitmapPaint)
+            canvas.drawBitmap(bitmap, avatarLeft, avatarTop, bitmapPaint)
         }
     }
 
+    private fun getOuterCircleRadius(): Float = (Math.min(width, height)-getLargeAvatarRadius())/ 2f - circleStrokeWith
 
-    private fun calculateOuterCircleRadius(): Float = Math.min(width, height) / 2f - circleStrokeWith
-
-    private fun calculateInnerCircleRadius(): Float {
-        return Math.min(width, height) / 2 - circleStrokeWith - getLargeAvatarRadius()
+    private fun getInnerCircleRadius(): Float {
+        return (Math.min(width, height)-getLargeAvatarRadius()) / 2 - circleStrokeWith - getLargeAvatarRadius()
     }
 
-    private fun calculateOwnUserAvatarRadius(): Float = (width / 3f) / 2
+    private fun getCenterAvatarRadius(): Float = ((Math.min(width, height)-getLargeAvatarRadius()) / 3f) / 2
 
-    private fun getLargeAvatarRadius(): Float = width / 6f
+    private fun getLargeAvatarRadius(): Float = width / 7f
 
-    private fun getSmallAvatarRadius(): Float = width / 8f
+    private fun getSmallAvatarRadius(): Float = width / 9f
 
     private fun getBitmap(avatarItem: AvatarItem): Bitmap {
 
@@ -288,5 +303,51 @@ class AvatarsRotationView(context: Context) : View(context) {
         lruCache.put(avatarItem, resultBitmap)
 
         return resultBitmap
+    }
+
+
+    class AvatarItem {
+
+        class Builder(context: Context) {
+
+            private val avatarItem: AvatarItem = AvatarItem()
+
+            fun setType(type: Type): Builder {
+                avatarItem.type = type
+                return this
+            }
+
+            fun setSize(size: Size): Builder {
+                avatarItem.size = size
+                return this
+            }
+
+            fun setPosition(position: Position): Builder {
+                avatarItem.position = position
+                return this
+            }
+
+            fun setOffsetAngle(offsetAngle: Float): Builder {
+                avatarItem.offsetAngle = offsetAngle
+                return this
+            }
+
+            fun setDrawableResId(drawableResId: Int): Builder {
+                avatarItem.drawableResId = drawableResId
+                return this
+            }
+
+            fun build(): AvatarItem = avatarItem
+        }
+
+        var type: Type = Type.DEFAULT
+        var size: Size = Size.LARGE
+        var position: Position = Position.FIRST_CIRCLE
+        var offsetAngle: Float = Random().nextInt(360).toFloat()
+        var drawableResId: Int = 0
+
+        enum class Type { DEFAULT, ANIMATED }
+        enum class Size { LARGE, SMALL }
+        enum class Position { FIRST_CIRCLE, SECOND_CIRCLE }
     }
 }
