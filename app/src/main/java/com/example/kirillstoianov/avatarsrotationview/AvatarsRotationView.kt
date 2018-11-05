@@ -7,6 +7,12 @@ import android.util.LruCache
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.LinearInterpolator
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.RequestOptions
+import com.bumptech.glide.request.target.Target
 import java.util.*
 
 
@@ -53,17 +59,37 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
-    private val ownerUserAvatar by lazy {
-        val bm = BitmapFactory.decodeResource(resources, R.drawable.oval_5)
-        val img = Bitmap.createScaledBitmap(
-            bm,
-            getCenterAvatarRadius().toInt() * 2,
-            getCenterAvatarRadius().toInt() * 2,
-            true
-        )
-        bm.recycle()
-        return@lazy img
+//    private val ownerUserAvatar by lazy {
+//        val bm = BitmapFactory.decodeResource(resources, R.drawable.oval_5)
+//        val img = Bitmap.createScaledBitmap(
+//            bm,
+//            getCenterAvatarRadius().toInt() * 2,
+//            getCenterAvatarRadius().toInt() * 2,
+//            true
+//        )
+//        bm.recycle()
+//        return@lazy img
+//    }
+
+     var ownerUserAvatarUrl: String? = null
+        set(value) {
+            field = value
+
+            if (value == null) {
+                ownerUserAvatar?.recycle()
+                ownerUserAvatar = null
+                return
+            }
+
+            loadUserPhoto()
+        }
+
+    private var ownerUserAvatar: Bitmap? = null
+    set(value) {
+        field = value
+        invalidate()
     }
+
 
     private val angleAnimator by lazy {
         ValueAnimator.ofFloat(0f, 1f).apply {
@@ -113,6 +139,52 @@ class AvatarsRotationView(context: Context) : View(context) {
 
     init {
         setLayerType(View.LAYER_TYPE_NONE, null)
+
+        loadUserPhoto()
+    }
+
+    private fun loadUserPhoto() {
+        ownerUserAvatarUrl?.apply {
+
+            Glide
+                .with(context)
+                .asBitmap()
+                .load(this)
+                .apply(RequestOptions().circleCrop())
+                .addListener(object : RequestListener<Bitmap> {
+                    override fun onLoadFailed(
+                        e: GlideException?,
+                        model: Any?,
+                        target: Target<Bitmap>?,
+                        isFirstResource: Boolean
+                    ): Boolean {
+                        TODO("Set placeholder") //To change body of created functions use File | Settings | File Templates.
+                    }
+
+                    override fun onResourceReady(
+                        resource: Bitmap?,
+                        model: Any?,
+                        target: Target<Bitmap>?,
+                        dataSource: DataSource?,
+                        isFirstResource: Boolean
+                    ): Boolean {
+
+                        if (resource == null) return isFirstResource
+
+                        val img = Bitmap.createScaledBitmap(
+                            resource,
+                            getCenterAvatarRadius().toInt() * 2,
+                            getCenterAvatarRadius().toInt() * 2,
+                            true
+                        )
+                        resource.recycle()
+                        ownerUserAvatar = img
+
+                        return isFirstResource
+                    }
+                })
+                .submit()
+        }
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -170,7 +242,7 @@ class AvatarsRotationView(context: Context) : View(context) {
         //val drawableRight: Int = width / 2 + getCenterAvatarRadius().toInt()
         //val drawableBottom: Int = height / 2 + getCenterAvatarRadius().toInt()
 
-        canvas.drawBitmap(ownerUserAvatar, drawableLeft, drawableTop, bitmapPaint)
+        ownerUserAvatar?.apply { canvas.drawBitmap(this, drawableLeft, drawableTop, bitmapPaint) }
     }
 
     private fun drawOtherUsersAvatars(canvas: Canvas) {
@@ -194,7 +266,7 @@ class AvatarsRotationView(context: Context) : View(context) {
                 }
             }
 
-            val avatarLeft:Float = if (item.type == AvatarItem.Type.ANIMATED){
+            val avatarLeft: Float = if (item.type == AvatarItem.Type.ANIMATED) {
                 when (item.size) {
                     AvatarItem.Size.LARGE -> {
                         (cx - largeSize / 2)
@@ -203,19 +275,19 @@ class AvatarsRotationView(context: Context) : View(context) {
                         (cx - smallSize / 2)
                     }
                 }
-            }else{
-               when(item.size){
-                   AvatarItem.Size.LARGE -> {
-                       (cx - getLargeAvatarRadius() / 2)
-                   }
-                   AvatarItem.Size.SMALL -> {
-                       (cx - getSmallAvatarRadius() / 2)
-                   }
-               }
+            } else {
+                when (item.size) {
+                    AvatarItem.Size.LARGE -> {
+                        (cx - getLargeAvatarRadius() / 2)
+                    }
+                    AvatarItem.Size.SMALL -> {
+                        (cx - getSmallAvatarRadius() / 2)
+                    }
+                }
             }
 
 
-            val avatarTop = if (item.type == AvatarItem.Type.ANIMATED){
+            val avatarTop = if (item.type == AvatarItem.Type.ANIMATED) {
                 when (item.size) {
                     AvatarItem.Size.LARGE -> {
                         (cy - largeSize / 2)
@@ -224,8 +296,8 @@ class AvatarsRotationView(context: Context) : View(context) {
                         (cy - smallSize / 2)
                     }
                 }
-            }else{
-                when(item.size){
+            } else {
+                when (item.size) {
                     AvatarItem.Size.LARGE -> {
                         (cy - getLargeAvatarRadius() / 2)
                     }
@@ -263,13 +335,14 @@ class AvatarsRotationView(context: Context) : View(context) {
         }
     }
 
-    private fun getOuterCircleRadius(): Float = (Math.min(width, height)-getLargeAvatarRadius())/ 2f - circleStrokeWith
+    private fun getOuterCircleRadius(): Float =
+        (Math.min(width, height) - getLargeAvatarRadius()) / 2f - circleStrokeWith
 
     private fun getInnerCircleRadius(): Float {
-        return (Math.min(width, height)-getLargeAvatarRadius()) / 2 - circleStrokeWith - getLargeAvatarRadius()
+        return (Math.min(width, height) - getLargeAvatarRadius()) / 2 - circleStrokeWith - getLargeAvatarRadius()
     }
 
-    private fun getCenterAvatarRadius(): Float = ((Math.min(width, height)-getLargeAvatarRadius()) / 3f) / 2
+    private fun getCenterAvatarRadius(): Float = ((Math.min(width, height) - getLargeAvatarRadius()) / 3f) / 2
 
     private fun getLargeAvatarRadius(): Float = width / 7f
 

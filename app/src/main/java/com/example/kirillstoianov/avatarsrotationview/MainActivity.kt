@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.support.v7.app.AppCompatActivity
 import android.view.ViewGroup
-import android.widget.Button
 import kotlinx.android.synthetic.main.activity_main.*
 
 
@@ -19,6 +18,7 @@ class MainActivity : AppCompatActivity() {
             .addView(avatarsRoationView)
 
         avatarsRoationView.avatarItems = getAvatarItems()
+        avatarsRoationView.ownerUserAvatarUrl = "https://c.phts.io/nr/chakrd5g62lorfrksgkwg44so4wc4ww.r800x800.906eefcfb27482af7b6ceaf4add5fac4.jpg"
 
         //start view animation
 
